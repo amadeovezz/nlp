@@ -1,11 +1,11 @@
 # Vanilla RNN's
 
-## Input setup
+## Training Input setup
 
 - Similar to Bengio et al, we build our embedding table
 - There is no concatenation of embedded tokens to represent a context window
 
-### Simple Example
+### Fixed context window example
 
 (Note this is duplicated from `mlp/note.md`)
 
@@ -68,6 +68,9 @@ tensor([[[-1.0219, -0.3420], # . / Batch 1
          [-0.2019,  1.1584]], # i / Batch 3
 ```
 
+
+### Variable context window example
+
 ## NN points
 
 For our RNN, the dependant variables are:
@@ -77,7 +80,7 @@ For our RNN, the dependant variables are:
 vector_dim = len([-1.0219, -0.3420])
 layer_1(in=vector_dim)
 ```
-
+- we have to be mindful about how we set/reset `previous_pre_activations`.
 
 
 ## Key points

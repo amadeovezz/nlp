@@ -19,21 +19,22 @@ This intention of this repository is educational in nature, and as such readabil
 
 ## TODO
 
-- MLP's
+- MLP
+  - Make train work
+- Emb MLP's
   - [ ] notes
-  - [ ] hyper parameter tuning
+  - [ ] hp tuning
 - RNN's
-  - [ ] generation
-  - [ ] fix loss - previous_pre_activation shapes are stored as state and interfere with validation computations
+  - [ ] Autogressive batch
   - [ ] double check back-prop through time
   - [ ] notes
-  - [ ] hyper parameter tuning
+  - [ ] hp tuning
 - Attention
   - [ ] loss
   - [ ] generation
   - [ ] notes
   - [ ] decoder
-  - [ ] hyper parameter tuning
+  - [ ] hp tuning
 
 
 Potential TODOs:

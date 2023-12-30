@@ -2,7 +2,7 @@
 
 A (rough) character based implementation of https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf
 
-## Input set-up
+## Training set-up
 
 - Choose an encoder
 - Encode text
@@ -81,14 +81,14 @@ tensor([[-1.0219, -0.3420, -1.0219, -0.3420, -1.0219, -0.3420], # [...]  / Batch
 - `vector_dim` (context_window * dim_of_embedding) influences weights/bias size in layer_1, ie:
 ```python 
 vector_dim = len(vector[-1.0219, -0.3420, -1.0219, -0.3420, -1.0219, -0.3420])
-layer_1(in=vector_dim)
+layer_1(num_of_inputa=vector_dim)
 ```
 - `num_of_unique_chars` 
 ```python
 last_layer
 ```
 
-### Optmization notes
+### Optimization notes
 
 
 

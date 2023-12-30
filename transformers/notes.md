@@ -3,9 +3,9 @@
 
 ## Input setup
 
+- We select a chunk of text from our data set
 - Similar to Bengio et al, we build our embedding table
 - There is no concatenation of embedded tokens to represent a context window. Instead we create positionally encoded embeddings and then add these embeddings to our embedding table.
-This encodes the positions.
 - Pass through attention head
   - Compute attention scores
   - Compute weighted embeddings
@@ -14,20 +14,12 @@ This encodes the positions.
 
 ### Simple Example
 
-(Note this is duplicated from `mlp/note.md`)
-
-For the text: "First"
-
 1. Encode the entire alphabet. Assume we give each character an index. a->0, b->1, etc...
    a. For our Shakespear text we have 65 unique characters
-2. $c=3$, we have a context window that looks like "...", "..f", ".fi"
-3. Lets say $n=5$, and we randomly grab some data that captures the word "First". It would look like:
+2. We select a chunk of text from our dataset Lets say $n=5$, and we randomly grab some data that captures the word "First". It would look like:
 ```python
-tensor([[ 0.,  0.,  0.], # [...]
-        [ 0.,  0., 18.], # [..F]
-        [ 0., 18., 47.], # [.Fi]
-        [18., 47., 56.], # [Fir]
-        [47., 56., 57.]]) # [irs]
+tensor([
+    [ 0., 18., 47., 56., 57. ], # [.First]
 ```
 Note: There is some padding going on here since it is the first word in our data set.
 

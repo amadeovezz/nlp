@@ -1,6 +1,5 @@
 from typing import Callable, Tuple, List
 
-
 def get_encoder_decoder(training_data: str, type: str = "character") -> Tuple[Callable, Callable]:
     with open(training_data, 'r', encoding='utf-8') as f:
         text = f.read()
