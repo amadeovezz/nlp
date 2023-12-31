@@ -21,6 +21,7 @@ class Attention(Model):
             out_dimension=hp["dim_of_attention_embedding"] ,
         )
         self.mlp = mlp
+        self.positional_encoding_func = kwargs['positional_encoding_func']
 
     def require_grad(self):
         self.embedding.requires_grad = True
@@ -28,37 +29,56 @@ class Attention(Model):
         self.mlp.require_grad()
 
     def zero_grad(self):
-        self.mlp.zero_grad()
         self.embedding.grad = None
+        self.attention_head.zero_grad()
+        self.mlp.zero_grad()
 
     def forward(self, inputs_idx: torch.Tensor) -> torch.Tensor:
         """
         :param inputs: tensor with dim: [Batch, Index of inputs]
         :return: [Batch, Logits]
         """
-        embedding = self.embedding[inputs_idx]
-        inputs_encoded = embedding.view(-1, self.hp["token_length"] * self.hp["dim_of_embedding"])
-        return self.mlp.forward(inputs_encoded)
+        # embedding
+        token_embedding = self.embedding[inputs_idx]
+
+        # positional embedding
+        positional_embedding = self.positional_encoding_func(token_embedding[0].shape[0], self.hp["dim_of_embedding"])
+
+        # this will be broadcasted
+        embedding = token_embedding + positional_embedding
+
+        # attention head
+        attention_embedding = self.attention_head(embedding)
+
+        # forward
+        return self.mlp.forward(attention_embedding)
 
     def tune(self, learning_rate: float) -> None:
-        self.mlp.tune(learning_rate)
         self.embedding.data += learning_rate * (-1 * self.embedding.grad)
+        self.attention_head.tune(learning_rate)
+        self.mlp.tune(learning_rate)
 
     def loss(self, logits: torch.Tensor, targets: torch.Tensor):
-        return self.mlp.loss(logits, targets)
+        # Grab the last token in the sequence
+        Batch, Token, Prob = logits.shape
+        logits = logits.view(Batch*Token, Prob)
+        targets = targets.view(Batch*Token)
+        return F.cross_entropy(logits, targets)
 
     @torch.no_grad
     def generate(self, max_num_of_tokens: int) -> List:
         sampled_text = []
 
-        # start with '/n' characters ([0])
-        context = torch.tensor(self.hp["token_length"] * [0], dtype=torch.int)
+        # start with '/n' characters
+        # extra brackets is so we can use our batched forward pass
+        context = torch.tensor([self.hp["token_length"] * [0]], dtype=torch.int)
 
         for _ in range(0, max_num_of_tokens):
-            out = self.forward(context) # only one batch
-            sampled_char = torch.multinomial(F.softmax(out, dim=1), num_samples=1).item()
+            out = self.forward(context)
+            last = out[:, self.hp["token_length"] - 1, :]
+            sampled_char = torch.multinomial(F.softmax(last, dim=1), num_samples=1).item()
             sampled_text.append(sampled_char)
-            context = torch.tensor(context[1:].tolist() + [sampled_char], dtype=torch.int)
+            context = torch.tensor([context[0][1:].tolist() + [sampled_char]], dtype=torch.int)
 
         return sampled_text
 

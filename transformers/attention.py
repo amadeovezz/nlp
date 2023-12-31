@@ -20,18 +20,27 @@ class BatchedAttentionHead:
         values = input @ self.Value
 
         # Compute attention scores
-        matrix = (queries @ keys.transpose(-2,-1)).exp()
+        matrix = (queries @ keys.transpose(-2, -1)).exp()
         scores = matrix / matrix.sum(1, keepdims=True)
 
         # Compute weighted embeddings
         new_embeddings = scores @ values
         return new_embeddings
 
+    def tune(self, learning_rate: float):
+        self.Query.data += learning_rate * (-1 * self.Query.grad)
+        self.Key.data += learning_rate * (-1 * self.Key.grad)
+        self.Value.data += learning_rate * (-1 * self.Value.grad)
+
     def require_grad(self):
         self.Query.requires_grad = True
         self.Key.requires_grad = True
         self.Value.requires_grad = True
 
+    def zero_grad(self):
+        self.Query.grad = None
+        self.Key.grad = None
+        self.Value.grad = None
 
 
 class AttentionHead:

@@ -22,18 +22,17 @@ def get_dataset(encoded_data: List, token_length: int, context_window: str = "fi
 
     def expanding_dataset(dataset: List[int]) -> Tuple:
         Inputs, Targets = [], []
+        context = [0] * (token_length + 1)
 
-        for i in range(len(dataset) - 1):  # Iterate until the second last element
-            # Create the input sequence for the current index
-            input_sequence = dataset[max(0, i + 1 - token_length):i + 1]
-            target = dataset[i + 1]
-            Inputs.append(input_sequence)
-            Targets.append(target)
+        for data in dataset:
+            Inputs.append(context[:-1])
+            Targets.append(context[1:])
 
-        # Pad shorter sequences at the beginning
-        Inputs = [([0] * (token_length - len(seq)) + seq) for seq in Inputs]
+            # Update the context
+            context = context[1:] + [data]
 
-        return torch.tensor(Inputs), torch.Tensor(Targets)
+        return torch.tensor(Inputs), torch.tensor(Targets)
+
 
     if context_window == "fixed":
         return {

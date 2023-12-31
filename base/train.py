@@ -10,7 +10,6 @@ def sgd(hp: Dict
         , training_targets: torch.Tensor
         , loss_list: List):
     """
-
     :param hp: hyper-params
     :param model:
     :param training_inputs: a Tensor [[ Context window ]]
