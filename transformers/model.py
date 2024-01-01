@@ -48,7 +48,7 @@ class Attention(Model):
         embedding = token_embedding + positional_embedding
 
         # attention head
-        attention_embedding = self.attention_head(embedding)
+        attention_embedding = self.attention_head(embedding)[0]
 
         # forward
         return self.mlp.forward(attention_embedding)

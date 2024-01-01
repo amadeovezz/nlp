@@ -1,20 +1,38 @@
 # Vanilla RNN's
 
-## Training Input setup
+## Novel ideas
+
+- We no longer concatenate embeddings, and instead use our neural net to model dependencies across tokens
+    - This is done by feeding in each one token in a sequence at a time through all layers
+    - For every token $t_n$ that is processed through a linear layer, we aggregate the $t_{n-1}$ result
+
+## Sequential modeling
+
+- Relationships between tokens are capture via sequential processing with state
+
+## Initialization
+
+vector_dim influences weights/bias size in layer_1, ie:
+```python 
+vector_dim = len([-1.0219, -0.3420])
+layer_1(in=vector_dim)
+```
+
+## Optimization
+
+- For all tokens in a sequence $s$, requires $s$ forward passes. 
+- Batches cannot be evaluated in parallel 
+- We have to be mindful about how we set/reset `previous_pre_activations`.
+
+## Forward pass
 
 - Similar to Bengio et al, we build our embedding table
 - There is no concatenation of embedded tokens to represent a context window
 
-### Fixed context window example
+### Example
 
-(Note this is duplicated from `mlp/note.md`)
+Recall for the text: "First", our `forward()` func might receive:
 
-For the text: "First"
-
-1. Encode the entire alphabet. Assume we give each character an index. a->0, b->1, etc...
-   a. For our Shakespear text we have 65 unique characters
-2. $c=3$, we have a context window that looks like "...", "..f", ".fi"
-3. Lets say $n=5$, and we randomly grab some data that captures the word "First". It would look like:
 ```python
 tensor([[ 0.,  0.,  0.], # [...]
         [ 0.,  0., 18.], # [..F]
@@ -22,7 +40,6 @@ tensor([[ 0.,  0.,  0.], # [...]
         [18., 47., 56.], # [Fir]
         [47., 56., 57.]]) # [irs]
 ```
-Note: There is some padding going on here since it is the first word in our data set.
 
 4. Create embedding table where $d=2$. This tensor would be $65x2$
 ```python
@@ -38,55 +55,33 @@ tensor([[-1.0219, -0.3420], # \n
 ```
 5. Indexing into our embedding table:
 ```python
-tensor([[[-1.0219, -0.3420], # . / Batch 1
-         [-1.0219, -0.3420], # .
-         [-1.0219, -0.3420]],# .
+tensor([[[-1.0219, -0.3420], # . / Token 1 - Batch 1
+         [-1.0219, -0.3420], # . / Token 2 - Batch 1
+         [-1.0219, -0.3420]],# . / Token 3 - Batch 1
 
-        [[-1.0219, -0.3420], # . / Batch 2
-         [-1.0219, -0.3420], # .
-         [ 0.1963, -1.4404]],# F
+        [[-1.0219, -0.3420], # . / Token 1 - Batch 2
+         [-1.0219, -0.3420], # . / Token 2 - Batch 2
+         [ 0.1963, -1.4404]],# F / Token 3 - Batch 2
 
-        [[-1.0219, -0.3420], # . / Batch 3
-         [ 0.1963, -1.4404], # F
-         [-0.2019,  1.1584]],# i
+        [[-1.0219, -0.3420], # . / Token 1 - Batch 3
+         [ 0.1963, -1.4404], # F / Token 2 - Batch 3
+         [-0.2019,  1.1584]],# i / Token 3 - Batch 4
         ...
 ```
+
 6. Organize by tokens:
 
 [Batch, Token, Embedding] -> [Token, Batch, Embedding]
 ```python
-tensor([[[-1.0219, -0.3420], # . / Batch 1
-         [-1.0219, -0.3420], # . / Batch 2
-         [-1.0219, -0.3420]],# . / Batch 3
+tensor([[[-1.0219, -0.3420], # . / Token 1 - Batch 1
+         [-1.0219, -0.3420], # . / Token 1 - Batch 2
+         [-1.0219, -0.3420]],# . / Token 1 - Batch 3
 
-        [[-1.0219, -0.3420],  # . / Batch 1
-         [-1.0219, -0.3420],  # . / Batch 2
-         [ 0.1963, -1.4404]], # F / Batch 3
+        [[-1.0219, -0.3420],  # . / Token 2 - Batch 1
+         [-1.0219, -0.3420],  # . / Token 2 - Batch 2
+         [ 0.1963, -1.4404]], # F / Token 2 - Batch 3
 
-        [[-1.0219, -0.3420],  # . / Batch 1
-         [ 0.1963, -1.4404],  # F / Batch 2
-         [-0.2019,  1.1584]], # i / Batch 3
+        [[-1.0219, -0.3420],  # . / Token 3 - Batch 1
+         [ 0.1963, -1.4404],  # F / Token 3 - Batch 2
+         [-0.2019,  1.1584]], # i / Token 3 - Batch 3
 ```
-
-
-### Variable context window example
-
-## NN points
-
-For our RNN, the dependant variables are:
-
-- vector_dim influences weights/bias size in layer_1, ie:
-```python 
-vector_dim = len([-1.0219, -0.3420])
-layer_1(in=vector_dim)
-```
-- we have to be mindful about how we set/reset `previous_pre_activations`.
-
-
-## Key points
-
-- We build up on Bengio et al. embeddings
-- We no longer concatenate embeddings, and instead use our neural net to model dependencies across tokens
-  - This is done by feeding in each one token in a sequence at a time through all layers
-  - For every token $t_n$ that is processed through a linear layer, we aggregate the $t_{n-1}$ result 
-- Tokens in seqeunces can not be evaluated in parrallel

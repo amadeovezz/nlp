@@ -1,17 +1,40 @@
-# MLP Bengio
+# MLP Embeddings 
 
 A (rough) character based implementation of https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf
 
-## Training set-up
+## Novel ideas
 
-- Choose an encoder
-- Encode text
-- Encode each character with dimension $d$
-- Select context window $c$ (number of tokens)
-- Build the data set: 
-  - Create vectors of dimension $c$, for each character position in the data sets.
-- Grab $n$ vectors from training data (this is our stochastic mini-batch)
-  - So now we have our input to our neural nn: $n$ by $c$ 
+- Introduces the idea of en embedding table.
+  - Embeddings are tuned as the network learns.
+  - Embeddings table is interpretable
+  - 
+## Sequential modeling
+
+- Context window is fixed
+- Relationships between tokens are captured via concatenated vectors
+- 
+## Initialization
+
+Some dependant variables include:
+
+- `vector_dim` (context_window * dim_of_embedding) influences weights/bias size in layer_1, ie:
+```python 
+vector_dim = len(vector[-1.0219, -0.3420, -1.0219, -0.3420, -1.0219, -0.3420])
+layer_1(num_of_inputs=vector_dim)
+```
+- `num_of_unique_chars`
+```python
+last_layer(num_of_outputs=num_of_unique_chars)
+```
+
+## Optimization
+
+- Batches can be evaluated in parallel
+
+
+## Forward pass
+
+- We receive a tensor of indexes.
 - Initialize an embedding matrix 
   - Choose a dimension $d$ to represent each character 
   - Build a matrix by vocab size by $d$
@@ -22,12 +45,8 @@ A (rough) character based implementation of https://www.jmlr.org/papers/volume3/
 
 ### Example
 
-For the text: "First"
+Recall for the text: "First", our `forward()` func might receive:
 
-1. Encode the entire alphabet. Assume we give each character an index. a->0, b->1, etc...
-  a. For our Shakespear text we have 65 unique characters
-2. $c=3$, we have a context window that looks like "...", "..f", ".fi"
-3. Lets say $n=5$, and we randomly grab some data that captures the word "First". It would look like:
 ```python
 tensor([[ 0.,  0.,  0.], # [...]
         [ 0.,  0., 18.], # [..F]
@@ -35,7 +54,6 @@ tensor([[ 0.,  0.,  0.], # [...]
         [18., 47., 56.], # [Fir]
         [47., 56., 57.]]) # [irs]
 ```
-Note: There is some padding going on here since it is the first word in our data set.
 
 4. Create embedding table where $d=2$. This tensor would be $65x2$
 ```python
@@ -73,30 +91,3 @@ tensor([[-1.0219, -0.3420, -1.0219, -0.3420, -1.0219, -0.3420], # [...]  / Batch
         [ 0.1963, -1.4404, -0.2019,  1.1584, -0.6039,  0.9259], # [Fir]  / Batch 4
         [-0.2019,  1.1584, -0.6039,  0.9259, -0.1773, -0.4201]]) # [irs] / Batch 5
 ``` 
-
-## NN notes
-
-### Dependant variables
-
-- `vector_dim` (context_window * dim_of_embedding) influences weights/bias size in layer_1, ie:
-```python 
-vector_dim = len(vector[-1.0219, -0.3420, -1.0219, -0.3420, -1.0219, -0.3420])
-layer_1(num_of_inputa=vector_dim)
-```
-- `num_of_unique_chars` 
-```python
-last_layer
-```
-
-### Optimization notes
-
-
-
-## Key points
-
-- Introduces the idea of en embedding table.
-  - Embeddings are tuned as the network learns.
-  - Embeddings table is interpretable
-- Context window is fixed
-- Relationships between tokens are captured via concatenated vectors
-- Batches can be evaluated in parallel 

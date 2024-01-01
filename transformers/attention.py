@@ -25,7 +25,7 @@ class BatchedAttentionHead:
 
         # Compute weighted embeddings
         new_embeddings = scores @ values
-        return new_embeddings
+        return new_embeddings, scores
 
     def tune(self, learning_rate: float):
         self.Query.data += learning_rate * (-1 * self.Query.grad)

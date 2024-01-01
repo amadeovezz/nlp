@@ -14,12 +14,12 @@ class EmbMLP(Model):
         self.mlp = model
 
     def require_grad(self):
-        self.mlp.require_grad()
         self.embedding.requires_grad = True
+        self.mlp.require_grad()
 
     def zero_grad(self):
-        self.mlp.zero_grad()
         self.embedding.grad = None
+        self.mlp.zero_grad()
 
     def forward(self, inputs_idx: torch.Tensor) -> torch.Tensor:
         """
@@ -31,8 +31,8 @@ class EmbMLP(Model):
         return self.mlp.forward(inputs_encoded)
 
     def tune(self, learning_rate: float) -> None:
-        self.mlp.tune(learning_rate)
         self.embedding.data += learning_rate * (-1 * self.embedding.grad)
+        self.mlp.tune(learning_rate)
 
     def loss(self, logits: torch.Tensor, targets: torch.Tensor):
         return self.mlp.loss(logits, targets)

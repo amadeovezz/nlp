@@ -14,14 +14,14 @@ class RNN(Model):
         self.layers = layers
 
     def require_grad(self):
+        self.embedding.requires_grad = True
         for layer in self.layers:
             layer.require_grad()
-        self.embedding.requires_grad = True
 
     def zero_grad(self):
+        self.embedding.grad = None
         for layer in self.layers:
             layer.zero_grad()
-        self.embedding.grad = None
 
     def reset_previous_activations(self):
         for layer in self.layers:
@@ -69,10 +69,10 @@ class RNN(Model):
 
 
     def tune(self, learning_rate: float) -> None:
+        self.embedding.data += learning_rate * (-1 * self.embedding.grad)
         for layer in self.layers:
             layer.weights.data += learning_rate * (-1 * layer.weights.grad)
             layer.biases.data += learning_rate * (-1 * layer.biases.grad)
-        self.embedding.data += learning_rate * (-1 * self.embedding.grad)
 
     def loss(self, out: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         return F.cross_entropy(out, targets)
