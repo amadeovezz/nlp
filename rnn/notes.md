@@ -2,13 +2,13 @@
 
 ## Novel ideas
 
-- We no longer concatenate embeddings, and instead use our neural net to model dependencies across tokens
+- We use our neural net to model dependencies across tokens
     - This is done by feeding in each one token in a sequence at a time through all layers
     - For every token $t_n$ that is processed through a linear layer, we aggregate the $t_{n-1}$ result
 
 ## Sequential modeling
 
-- Relationships between tokens are capture via sequential processing with state
+- Unlike Bengio et al - we no longer concatenate embeddings. Relationships between tokens are capture via sequential processing with state
 
 ## Initialization
 

@@ -8,9 +8,11 @@ from base.abstract import Model
 
 class RNN(Model):
 
-    def __init__(self, hp: Dict, emd: torch.Tensor, layers: List[RecurrentLayer]):
+    def __init__(self, hp: Dict, layers: List[RecurrentLayer], **kwargs):
         self.hp = hp
-        self.embedding = emd
+        self.embedding = torch.randn(
+            (kwargs["num_of_unique_chars"], hp["dim_of_embedding"])
+            , dtype=torch.float64)
         self.layers = layers
 
     def require_grad(self):
