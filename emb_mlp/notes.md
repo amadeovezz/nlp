@@ -7,12 +7,12 @@ A (rough) character based implementation of https://www.jmlr.org/papers/volume3/
 - Introduces the idea of en embedding table.
   - Embeddings are tuned as the network learns.
   - Embeddings table is interpretable
-  - 
+  
 ## Sequential modeling
 
 - Context window is fixed
 - Relationships between tokens are captured via concatenated vectors
-- 
+
 ## Initialization
 
 Some dependant variables include:
@@ -30,7 +30,6 @@ last_layer(num_of_outputs=num_of_unique_chars)
 ## Optimization
 
 - Batches can be evaluated in parallel
-
 
 ## Forward pass
 

@@ -8,9 +8,11 @@ from base.mlp import MLP
 
 class EmbMLP(Model):
 
-    def __init__(self, hp: Dict, emd: torch.Tensor, model: MLP):
+    def __init__(self, hp: Dict, model: MLP, **kwargs):
         self.hp = hp
-        self.embedding = emd
+        self.embedding = torch.randn(
+            (kwargs["num_of_unique_chars"], hp["dim_of_embedding"])
+            , dtype=torch.float64)
         self.mlp = model
 
     def require_grad(self):
@@ -23,7 +25,7 @@ class EmbMLP(Model):
 
     def forward(self, inputs_idx: torch.Tensor) -> torch.Tensor:
         """
-        :param inputs: tensor with dim: [Batch, Index of inputs]
+        :param inputs: 2D tensor with dim: [Batch, Index of inputs]
         :return: [Batch, Logits]
         """
         embedding = self.embedding[inputs_idx]
