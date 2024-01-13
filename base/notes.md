@@ -26,9 +26,9 @@ The input set-up (steps 1 and 2 above) for all models is the same:
 - Choose an encoder
 - Encode text
 - Select context window $c$ (number of tokens)
-- Build the data set:
-    - Create vectors of dimension $c$, for each character position in the data sets.
-- Grab $n$ vectors from training data (this is our stochastic mini-batch)
+- Build train/validation datasets:
+    - For each character in the dataset, create vectors of dimension $c$.
+- Grab $n$ vectors our training data (this is our stochastic mini-batch)
     - Now we have our input ready for our forward pass: $n$ by $c$ matrix 
 
 ### Example

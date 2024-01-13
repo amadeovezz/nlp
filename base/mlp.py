@@ -4,6 +4,7 @@ from torch.functional import F
 
 from base import abstract
 
+
 class LinearLayer(abstract.Layer):
 
     def __init__(self

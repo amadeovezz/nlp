@@ -11,8 +11,9 @@ def sgd(hp: Dict
         , loss_list: List):
     """
     :param hp: hyper-params
-    :param model:
-    :param training_inputs: a Tensor [[ Context window ]]
+    :param model: an object that implements the methods in abstract.Model
+    :param training_inputs: a 2D Tensor where each row represent a batch and each batch contains
+    a set of indexes that represent characters from training data. Ie: [[1,2,3], [3,4,5]]
     :param training_targets:
     :param loss_list:
     :return:
