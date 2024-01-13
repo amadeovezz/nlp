@@ -1,27 +1,40 @@
-
 from typing import Callable
 import torch
+from torch.functional import F
 
 
 class BatchedAttentionHead:
     def __init__(self
                  , emb_dim: int
                  , out_dimension: int
+                 , block_type: str = "encoder"
                  , g=torch.Generator().manual_seed(2147483647)
                  ):
         self.Query = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=g)
         self.Key = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=g)
-        self.Value = torch.randn(emb_dim, out_dimension,dtype=torch.float64, generator=g)
+        self.Value = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=g)
+        self.block_type = block_type
 
     def __call__(self, input: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+        """
+       :param input: A tensor of dim [Batch, Token, Embedding dim]
+       :return:
+       """
         # Pass along
         queries = input @ self.Query
         keys = input @ self.Key
         values = input @ self.Value
 
         # Compute attention scores
-        matrix = (queries @ keys.transpose(-2, -1)).exp()
-        scores = matrix / matrix.sum(1, keepdims=True)
+        matrix = (queries @ keys.transpose(-2, -1))
+
+        if self.block_type == "decoder":
+            num_of_tokens = input.shape[1]
+            tril = torch.tril(torch.ones(num_of_tokens, num_of_tokens, dtype=torch.float64))
+            masked = matrix.masked_fill(tril == 0, float('-inf'))
+            scores = F.softmax(masked, dim=1)
+        elif self.block_type == "encoder":
+            scores = F.softmax(matrix, dim=1)
 
         # Compute weighted embeddings
         new_embeddings = scores @ values
@@ -48,21 +61,35 @@ class AttentionHead:
     def __init__(self
                  , emd_dim: int
                  , out_dimension: int
+                 , block_type: str = "encoder"
                  , g=torch.Generator().manual_seed(2147483647)
                  ):
         self.Query = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=g)
         self.Key = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=g)
         self.Value = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=g)
+        self.block_type = block_type
 
     def __call__(self, input: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+        """
+        :param input: A tensor of dim [Token, Embedding dim]
+        :return:
+        """
+
         # Pass along
         queries = input @ self.Query
         keys = input @ self.Key
         values = input @ self.Value
 
         # Compute attention scores
-        matrix = (queries @ keys.T).exp()
-        scores = matrix / matrix.sum(1, keepdims=True)
+        matrix = (queries @ keys.T)
+
+        if self.block_type == "decoder":
+            num_of_tokens = input.shape[0]
+            tril = torch.tril(torch.ones(num_of_tokens, num_of_tokens, dtype=torch.float64))
+            masked = matrix.masked_fill(tril == 0, float('-inf'))
+            scores = F.softmax(masked, dim=1)
+        elif self.block_type == "encoder":
+            scores = F.softmax(matrix, dim=1)
 
         # Compute weighted embeddings
         new_embeddings = scores @ values
