@@ -1,9 +1,11 @@
 from typing import Callable, List, Dict
 import torch
 import torch.nn.functional as F
+from torch import nn
 
 from base.abstract import Model
 from base.mlp import MLP
+from base.norm import LayerNorm
 
 from attention import BatchedAttentionHead
 
@@ -12,50 +14,61 @@ class Attention(Model):
 
     def __init__(self, hp: Dict, mlp: MLP, **kwargs):
         self.hp = hp
+        self.positional_encoding_func = kwargs['positional_encoding_func']
         self.embedding = torch.randn(
             (kwargs["num_of_unique_chars"], hp["dim_of_embedding"])
-            , requires_grad=True
             , dtype=torch.float64)
         self.attention_head = BatchedAttentionHead(
             emb_dim=hp['dim_of_embedding'],
-            out_dimension=hp["dim_of_attention_embedding"] ,
+            out_dimension=hp["dim_of_attention_embedding"],
+            block_type="decoder"
         )
+        self.layer_norm_1 = LayerNorm(hp['dim_of_embedding'], eps=0)
+        #self.layer_norm_2 = LayerNorm(hp['dim_of_embedding'], eps=0)
         self.mlp = mlp
-        self.positional_encoding_func = kwargs['positional_encoding_func']
 
     def require_grad(self):
         self.embedding.requires_grad = True
         self.attention_head.require_grad()
+        self.layer_norm_1.require_grad()
+        #self.layer_norm_2.require_grad()
         self.mlp.require_grad()
 
     def zero_grad(self):
         self.embedding.grad = None
         self.attention_head.zero_grad()
+        self.layer_norm_1.zero_grad()
+        #self.layer_norm_2.zero_grad()
         self.mlp.zero_grad()
 
     def forward(self, inputs_idx: torch.Tensor) -> torch.Tensor:
         """
-        :param inputs: tensor with dim: [Batch, Index of inputs]
-        :return: [Batch, Logits]
+        :param inputs: tensor with dim: [Batch, Index of inputs (Tokens)]
+        :return: [Batch, Token, Logits]
         """
-        # embedding
+        # embedding [Batch, Tokens, Embedding]
         token_embedding = self.embedding[inputs_idx]
 
         # positional embedding
         positional_embedding = self.positional_encoding_func(token_embedding[0].shape[0], self.hp["dim_of_embedding"])
 
-        # this will be broadcasted
-        embedding = token_embedding + positional_embedding
+        embedding = token_embedding + positional_embedding # this will be broadcasted
 
         # attention head
         attention_embedding = self.attention_head(embedding)[0]
 
+        # residual connection + layer norm 1
+        add_norm_embedding = attention_embedding + self.layer_norm_1(attention_embedding)
+
         # forward
-        return self.mlp.forward(attention_embedding)
+        return self.mlp.forward(add_norm_embedding)
+
 
     def tune(self, learning_rate: float) -> None:
         self.embedding.data += learning_rate * (-1 * self.embedding.grad)
         self.attention_head.tune(learning_rate)
+        self.layer_norm_1.tune(learning_rate)
+        #self.layer_norm_2.tune(learning_rate)
         self.mlp.tune(learning_rate)
 
     def loss(self, logits: torch.Tensor, targets: torch.Tensor):
