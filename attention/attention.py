@@ -1,5 +1,6 @@
 from typing import Callable
 import torch
+import numpy as np
 from torch.functional import F
 
 
@@ -30,11 +31,12 @@ class BatchedAttentionHead:
 
         if self.block_type == "decoder":
             num_of_tokens = input.shape[1]
+            # Create auto-regressive token communication
             tril = torch.tril(torch.ones(num_of_tokens, num_of_tokens, dtype=torch.float64))
-            masked = matrix.masked_fill(tril == 0, float('-inf'))
-            scores = F.softmax(masked, dim=1)
+            masked = matrix.masked_fill(tril == 0, float(-1e9))
+            scores = F.softmax(masked, dim=2)
         elif self.block_type == "encoder":
-            scores = F.softmax(matrix, dim=1)
+            scores = F.softmax(matrix, dim=2)
 
         # Compute weighted embeddings
         new_embeddings = scores @ values

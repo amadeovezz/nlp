@@ -21,7 +21,7 @@ class Attention(Model):
         self.attention_head = BatchedAttentionHead(
             emb_dim=hp['dim_of_embedding'],
             out_dimension=hp["dim_of_attention_embedding"],
-            block_type="decoder"
+            block_type=kwargs["attention_block_type"]
         )
         self.layer_norm_1 = LayerNorm(hp['dim_of_embedding'], eps=0)
         #self.layer_norm_2 = LayerNorm(hp['dim_of_embedding'], eps=0)
