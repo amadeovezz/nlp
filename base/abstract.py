@@ -12,6 +12,9 @@ class Layer(ABC):
     def __call__(self, inputs: torch.Tensor):
         raise NotImplementedError
 
+    def tune(self, learning_rate: float) -> None:
+        raise NotImplementedError
+
     def zero_grad(self):
         raise NotImplementedError
 

@@ -4,7 +4,7 @@ import numpy as np
 from torch.functional import F
 
 
-class BatchedAttentionHead:
+class BatchedSelfAttentionHead:
     def __init__(self
                  , emb_dim: int
                  , out_dimension: int
@@ -58,7 +58,7 @@ class BatchedAttentionHead:
         self.Value.grad = None
 
 
-class AttentionHead:
+class SelfAttentionHead:
 
     def __init__(self
                  , emd_dim: int
@@ -103,7 +103,7 @@ class AttentionHead:
         self.Value.requires_grad = True
 
 
-class StaticAttentionHead:
+class CrossAttentionHead:
 
     def __init__(self
                  , num_of_possible_inputs: int

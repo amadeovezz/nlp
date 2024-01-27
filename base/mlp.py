@@ -55,6 +55,10 @@ class LinearLayer(abstract.Layer):
 
         return out
 
+    def tune(self, learning_rate: float) -> None:
+        self.weights.data += learning_rate * (-1 * self.weights.grad)
+        self.biases.data += learning_rate * (-1 * self.biases.grad)
+
     def zero_grad(self) -> None:
         self.weights.grad = None
         self.biases.grad = None
@@ -81,8 +85,7 @@ class MLP(abstract.Model):
 
     def tune(self, learning_rate: float) -> None:
         for layer in self.layers:
-            layer.weights.data += learning_rate * (-1 * layer.weights.grad)
-            layer.biases.data += learning_rate * (-1 * layer.biases.grad)
+            layer.tune(learning_rate)
 
     def loss(self, out: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         return F.cross_entropy(out, targets)

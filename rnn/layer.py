@@ -54,6 +54,9 @@ class RecurrentLayer(Layer):
 
         return out
 
+    def tune(self, learning_rate: float) -> None:
+        return None
+
     def zero_grad(self) -> None:
         self.weights.grad = None
         self.biases.grad = None
