@@ -11,7 +11,7 @@ class LinearLayer(abstract.Layer):
                  , num_of_inputs: int
                  , num_of_neurons: int
                  , activation_func: Callable = None
-                 , g=torch.Generator().manual_seed(2147483647)
+                 , generator: torch.Generator = None
                  , init_scale_factor_weights: float = 1
                  , init_scale_factor_biases: float = 1
                  , append_hidden_layer: bool = False
@@ -23,9 +23,9 @@ class LinearLayer(abstract.Layer):
         """
         # Params
         self.weights = torch.randn(num_of_inputs, num_of_neurons, dtype=torch.float64,
-                                   generator=g) * init_scale_factor_weights
+                                   generator=generator) * init_scale_factor_weights
 
-        self.biases = torch.randn(num_of_neurons, dtype=torch.float64, generator=g) * init_scale_factor_biases
+        self.biases = torch.randn(num_of_neurons, dtype=torch.float64, generator=generator) * init_scale_factor_biases
 
         # Activation
         self.activation_func = activation_func

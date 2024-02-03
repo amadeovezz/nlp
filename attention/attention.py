@@ -9,11 +9,11 @@ class BatchedSelfAttentionHead:
                  , emb_dim: int
                  , out_dimension: int
                  , block_type: str = "encoder"
-                 , g=torch.Generator().manual_seed(2147483647)
+                 , generator: torch.Generator = None
                  ):
-        self.Query = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=g)
-        self.Key = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=g)
-        self.Value = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=g)
+        self.Query = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=generator)
+        self.Key = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=generator)
+        self.Value = torch.randn(emb_dim, out_dimension, dtype=torch.float64, generator=generator)
         self.block_type = block_type
 
     def __call__(self, input: torch.Tensor) -> (torch.Tensor, torch.Tensor):
@@ -64,11 +64,12 @@ class SelfAttentionHead:
                  , emd_dim: int
                  , out_dimension: int
                  , block_type: str = "encoder"
-                 , g=torch.Generator().manual_seed(2147483647)
+                 , generator: torch.Generator = None
                  ):
-        self.Query = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=g)
-        self.Key = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=g)
-        self.Value = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=g)
+
+        self.Query = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=generator)
+        self.Key = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=generator)
+        self.Value = torch.randn(emd_dim, out_dimension, dtype=torch.float64, generator=generator)
         self.block_type = block_type
 
     def __call__(self, input: torch.Tensor) -> (torch.Tensor, torch.Tensor):
@@ -108,11 +109,11 @@ class CrossAttentionHead:
     def __init__(self
                  , num_of_possible_inputs: int
                  , out_dimension: int
-                 , g=torch.Generator().manual_seed(2147483647)
+                 , generator: torch.Generator = None
                  ):
-        self.Query = torch.randn(num_of_possible_inputs, out_dimension, generator=g)
-        self.Key = torch.randn(num_of_possible_inputs, out_dimension, generator=g)
-        self.Value = torch.randn(num_of_possible_inputs, out_dimension, generator=g)
+        self.Query = torch.randn(num_of_possible_inputs, out_dimension, generator=generator)
+        self.Key = torch.randn(num_of_possible_inputs, out_dimension, generator=generator)
+        self.Value = torch.randn(num_of_possible_inputs, out_dimension, generator=generator)
 
     def __call__(self, input: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         # Fetch embeddings

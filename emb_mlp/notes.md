@@ -13,20 +13,6 @@ A (rough) character based implementation of https://www.jmlr.org/papers/volume3/
 - Context window is fixed
 - Relationships between tokens are captured via concatenated vectors
 
-## Initialization
-
-Some dependant variables include:
-
-- `vector_dim` (context_window * dim_of_embedding) influences weights/bias size in layer_1, ie:
-```python 
-vector_dim = len(vector[-1.0219, -0.3420, -1.0219, -0.3420, -1.0219, -0.3420])
-layer_1(num_of_inputs=vector_dim)
-```
-- `num_of_unique_chars`
-```python
-last_layer(num_of_outputs=num_of_unique_chars)
-```
-
 ## Optimization
 
 - Batches can be evaluated in parallel

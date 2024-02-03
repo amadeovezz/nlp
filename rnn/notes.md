@@ -8,20 +8,12 @@
 
 ## Sequential modeling
 
-- Unlike Bengio et al - we no longer concatenate embeddings. Relationships between tokens are capture via sequential processing with state
-
-## Initialization
-
-vector_dim influences weights/bias size in layer_1, ie:
-```python 
-vector_dim = len([-1.0219, -0.3420])
-layer_1(in=vector_dim)
-```
+- Unlike Bengio et al - we no longer concatenate embeddings. 
+- Relationships between tokens are captured through aggregation of tokens
 
 ## Optimization
 
 - For all tokens in a sequence $s$, requires $s$ forward passes. 
-- Batches cannot be evaluated in parallel 
 - We have to be mindful about how we set/reset `previous_pre_activations`.
 
 ## Forward pass

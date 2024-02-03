@@ -12,41 +12,59 @@ from attention import BatchedSelfAttentionHead
 
 class SimpleTransformer(Model):
 
-    def __init__(self, hp: Dict, mlp: MLP, **kwargs):
+    def __init__(self
+                 , hp: Dict
+                 , mlp: MLP
+                 , generator: torch.Generator = None
+                 , **kwargs):
         """
-        :param hp: hyperparameters. Some notworthy ones:
-            - dim_of_embedding: the dimension of the original embedding + positional encoding
-            - dim_of_attention_embedding: the desired output of the embedding after an attention head. Note for
-            multi-headed attention, the increase or decrease in dimensionality occurs with projection of a linear layer
-            instead of within the attention head itself.
+        A single block and single headed transformer model.
+
+        :param hp: hyperparameters. Some noteworthy ones:
+            - dim_of_embedding: the dimensionality of the embedding pre/post attention
         :param mlp:
-        :param kwargs: 
+        :param kwargs:
+
+        Note: For simplicity (and consistency with original transformer paper) we retain the dimensionality of the
+        embedding through the attention layers here.
+
         """
         self.hp = hp
         self.positional_encoding_func = kwargs['positional_encoding_func']
         self.embedding = torch.randn(
             (kwargs["num_of_unique_chars"], hp["dim_of_embedding"])
-            , dtype=torch.float64)
+            , dtype=torch.float64
+            , generator=generator)
 
         self.attention_head = BatchedSelfAttentionHead(
                 emb_dim=hp["dim_of_embedding"],
-                out_dimension=["dim_of_attention_embedding"],
-                block_type=kwargs["attention_block_type"]
+                out_dimension=hp["dim_of_embedding"],
+                block_type=kwargs["attention_block_type"],
+                generator=generator
         )
 
-        self.layer_norm = LayerNorm(hp["dim_of_attention_embedding"], eps=0)
         self.mlp = mlp
+        self.layer_norm_1 = LayerNorm(hp["dim_of_embedding"], eps=0)
+        self.layer_norm_2 = LayerNorm(hp["dim_of_embedding"], eps=0)
+        self.linear_proj = LinearLayer(
+             num_of_inputs=hp["dim_of_embedding"]
+           , num_of_neurons=kwargs["num_of_unique_chars"]
+        )
 
     def require_grad(self):
         self.embedding.requires_grad = True
         self.attention_head.require_grad()
-        self.layer_norm.require_grad()
+        self.layer_norm_1.require_grad()
+        self.layer_norm_2.require_grad()
+        self.linear_proj.require_grad()
         self.mlp.require_grad()
 
     def zero_grad(self):
         self.embedding.grad = None
         self.attention_head.zero_grad()
-        self.layer_norm.zero_grad()
+        self.layer_norm_1.zero_grad()
+        self.layer_norm_2.zero_grad()
+        self.linear_proj.zero_grad()
         self.mlp.zero_grad()
 
     def forward(self, inputs_idx: torch.Tensor) -> torch.Tensor:
@@ -65,11 +83,17 @@ class SimpleTransformer(Model):
         # single headed attention
         attention_embedding = self.attention_head(embedding)[0]
 
-        # residual connection + layer norm
-        add_norm_embedding = attention_embedding + self.layer_norm(attention_embedding)
+        # residual connection + layer norm 1
+        add_norm_embedding = self.layer_norm_1(embedding + attention_embedding)
 
-        # mlp forward
-        return self.mlp.forward(add_norm_embedding)
+        # feed forward
+        mlp_out = self.mlp.forward(add_norm_embedding)
+
+        # residual connection + layer norm 2
+        add_norm_mlp_out = self.layer_norm_2(add_norm_embedding + mlp_out)
+
+        # final linear projection
+        return self.linear_proj(add_norm_mlp_out)
 
     def inspect_attention(self, inputs_idx: torch.Tensor) -> torch.Tensor:
         # embedding [Batch, Tokens, Embedding]
@@ -86,7 +110,9 @@ class SimpleTransformer(Model):
     def tune(self, learning_rate: float) -> None:
         self.embedding.data += learning_rate * (-1 * self.embedding.grad)
         self.attention_head.tune(learning_rate)
-        self.layer_norm.tune(learning_rate)
+        self.layer_norm_1.tune(learning_rate)
+        self.layer_norm_2.tune(learning_rate)
+        self.linear_proj.tune(learning_rate)
         self.mlp.tune(learning_rate)
 
     def loss(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
@@ -118,61 +144,78 @@ class SimpleTransformer(Model):
         out = self.forward(all_inputs)
         return self.loss(out, all_targets)
 
+
 class Transformer(SimpleTransformer):
 
-    def __init__(self, hp: Dict, mlp: MLP, **kwargs):
+    def __init__(self
+                 , hp: Dict
+                 , mlp: MLP
+                 , generator: torch.Generator() = None
+                 , **kwargs):
         """
-        A transformer with more bells and whistles.
-        Assumes multi-headed attention.
+        A multi-headed, multi-block transformer model
 
         :param hp: hyperparameters. Some noteworthy ones:
-            - dim_of_embedding: the dimension of the original embedding + positional encoding
-            - dim_of_attention_embedding: the desired output of the embedding after multi-headed attention.
-            This is determined by a projection after the attention blocks.
+
+            - dim_of_embedding: the dimensionality of the embedding pre/post attention
         :param mlp:
         :param kwargs:
+
+         Note: For simplicity (and consistency with original transformer paper) we retain the dimensionality of the
+        embedding through the attention layers here.
         """
         self.hp = hp
         self.positional_encoding_func = kwargs['positional_encoding_func']
         self.embedding = torch.randn(
             (kwargs["num_of_unique_chars"], hp["dim_of_embedding"])
-            , dtype=torch.float64)
+            , dtype=torch.float64
+            , generator=generator
+        )
 
+        assert (hp['dim_of_embedding'] / hp["num_of_attention_heads"]) % 1 == 0
         self.dim_of_attention_head = hp['dim_of_embedding'] // hp["num_of_attention_heads"]
-        assert self.dim_of_attention_head % 2 == 0
         self.attention_heads = [
             BatchedSelfAttentionHead(
                 emb_dim=self.dim_of_attention_head,
                 out_dimension=self.dim_of_attention_head,
-                block_type=kwargs["attention_block_type"]
+                block_type=kwargs["attention_block_type"],
+                generator=generator
             ) for _ in range(hp["num_of_attention_heads"])]
 
-        self.linear_projection = LinearLayer(
+        self.linear_proj_1 = LinearLayer(
             num_of_inputs=hp['dim_of_embedding'],
-            num_of_neurons=hp["dim_of_attention_embedding"],
-            activation_func=torch.tanh,
+            num_of_neurons=hp["dim_of_embedding"],
+            generator=generator
         )
 
-        self.layer_norm_1 = LayerNorm(hp["dim_of_attention_embedding"], eps=0)
-        #self.layer_norm_2 = LayerNorm(kwargs['num_of_unique_chars'], eps=0)
+        self.linear_proj_2 = LinearLayer(
+            num_of_inputs=hp['dim_of_embedding'],
+            num_of_neurons=kwargs["num_of_unique_chars"],
+            generator=generator
+        )
+
+        self.layer_norm_1 = LayerNorm(hp["dim_of_embedding"], eps=0)
+        self.layer_norm_2 = LayerNorm(hp['dim_of_embedding'], eps=0)
         self.mlp = mlp
 
     def require_grad(self):
         self.embedding.requires_grad = True
         for attn in self.attention_heads:
             attn.require_grad()
-        self.linear_projection.require_grad()
+        self.linear_proj_1.require_grad()
+        self.linear_proj_2.require_grad()
         self.layer_norm_1.require_grad()
-       #self.layer_norm_2.require_grad()
+        self.layer_norm_2.require_grad()
         self.mlp.require_grad()
 
     def zero_grad(self):
         self.embedding.grad = None
         for attn in self.attention_heads:
             attn.zero_grad()
-        self.linear_projection.zero_grad()
+        self.linear_proj_1.zero_grad()
+        self.linear_proj_2.zero_grad()
         self.layer_norm_1.zero_grad()
-        #self.layer_norm_2.zero_grad()
+        self.layer_norm_2.zero_grad()
         self.mlp.zero_grad()
 
     def forward(self, inputs_idx: torch.Tensor) -> torch.Tensor:
@@ -192,28 +235,34 @@ class Transformer(SimpleTransformer):
         for _ in range(0, self.hp["num_of_attention_blocks"]):
 
             # multi-headed attention
+
             # we need to break up the dimensionality of our vector
             split_embedding = torch.split(embedding, self.dim_of_attention_head, dim=-1)
             split_attention_embedding = [head(emb)[0] for head, emb in zip(self.attention_heads, split_embedding)]
             attention_embedding_cat = torch.cat(split_attention_embedding, dim=-1)
-            attention_embedding = self.linear_projection(attention_embedding_cat)
+            attention_embedding = self.linear_proj_1(attention_embedding_cat)
 
             # residual connection + layer norm
-            add_norm_embedding = attention_embedding + self.layer_norm_1(attention_embedding)
+            add_norm_embedding = self.layer_norm_1(embedding + attention_embedding)
 
             # mlp
-            out = self.mlp.forward(add_norm_embedding)
+            mlp_out = self.mlp.forward(add_norm_embedding)
 
             # residual connection + layer norm
-            #final = out + self.layer_norm_2(out)
+            add_norm_mlp_out = self.layer_norm_2(add_norm_embedding + mlp_out)
 
-        return out
+            # set the out embedding from the previous block as input to the next attention block
+            embedding = add_norm_mlp_out
+
+        # final linear projection to generate our logits
+        return self.linear_proj_2(embedding)
 
     def tune(self, learning_rate: float) -> None:
         self.embedding.data += learning_rate * (-1 * self.embedding.grad)
         for attn in self.attention_heads:
             attn.tune(learning_rate)
-        self.linear_projection.tune(learning_rate)
+        self.linear_proj_1.tune(learning_rate)
+        self.linear_proj_2.tune(learning_rate)
         self.layer_norm_1.tune(learning_rate)
-        #self.layer_norm_2.tune(learning_rate)
+        self.layer_norm_2.tune(learning_rate)
         self.mlp.tune(learning_rate)
