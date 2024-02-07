@@ -45,5 +45,5 @@ def sgd(hp: Dict
         learning_rate = hp['init_learning_rate'] if epoch < 100000 else hp['converging_learning_rate']
         model.tune(learning_rate)
 
-        if epoch % 10000 == 0:
+        if epoch % hp['epochs_log_interval'] == 0:
             print(f'epoch: {epoch} / {hp["epochs"]}, loss: {loss.item():.4f}')

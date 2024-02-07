@@ -8,13 +8,12 @@ The purpose is to implement, compare and contrast some of notable ideas in the f
 This intention of this repository is educational in nature, and as such readability and conceptual understanding of the code is prioritized over performance.
 
 ### A note on pytorch
-`pytorch` is mainly just used for tensor operations and auto-grad features
-whereas there is intentionally no use of `nn.Module`.
+
+`pytorch` is mainly just used for tensor operations and auto-grad features whereas there is intentionally no use of `nn.Module`.
 
 ## Inspiration
 
 This repo is inspired by https://github.com/karpathy/nn-zero-to-hero and some code is re-used from here. 
-
 
 ## Current models 
 
