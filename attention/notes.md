@@ -4,14 +4,163 @@
 
 - Attention. Attending to specific inputs in our sequence.
 
+### Example
+
+Let us look at a simple example with our `SelfAttentionHead()` class. 
+
+For the text: "Would you"
+
+1. We would encode the text into a vector:
+
+```python
+[35, 53, 59, 50, 42, 1, 63, 53, 59]
+```
+
+2. Let us generate embeddings for each token:
+
+```python
+embeddings
+ tensor([[-0.9205, -0.8238], # W
+         [ 0.5364, -1.5131], # o
+         [ 0.1597,  0.6444], # u
+         [-0.6822,  0.4506], # l
+         [ 1.2922, -0.9028], # d
+         [ 0.7594,  1.1730], # ' '
+         [-0.3377,  1.0273], # y
+         [ 1.6784,  0.9476], # o
+         [ 0.1044, -1.3956]],# u
+        dtype=torch.float64),
+```
+
+3. Generate Keys, Queries, and Values
+
+`SelfAttentionHead()` has three parameters: `Keys, Queries and Values`. 
+All of them perform a linear transformation with our incoming input:
+
+```python
+queries = input @ self.Query
+keys = input @ self.Key
+values = input @ self.Value
+```
+
+4. Generate our attention matrix 
+
+```python
+queries @ keys.T
+```
+
+We have our queries:
+
+```python
+tensor([[ 1.0779, -0.5741], # W
+        [ 0.4964, -0.6477], # o
+        [-0.4699,  0.3467], # u
+        [ 0.2001,  0.0974], # l
+        [-0.3513, -0.2088], # d
+        [-1.1676,  0.7167], # ' '
+        [-0.3546,  0.4445], # y
+        [-1.6525,  0.7736], # o
+        [ 0.7178, -0.6687]],# u
+       dtype=torch.float64)
+```
+
+Note that: `keys.T` can be thought of as,
+
+```python
+         # W       # o      # u      # l      # d      # ' '   # y       # o      # u
+tensor([[ 1.5008, -0.4762, -0.3606,  0.9001, -1.6952, -1.3368,  0.2849, -2.6256,  0.1274],
+        [ 0.6880,  2.4543, -0.8378, -1.0102,  1.9840, -1.2742, -1.6521, -0.4601,  2.0550]], dtype=torch.float64)
+```
+
+And then when we perform this matrix multiplication, we take each embedding in our query and multiply by each 
+embedding in our keys. Ie:
+
+The embedding for the token 'W' from our query: `[ 1.0779, -0.5741]` interacts with all the other embeddings from our keys:
+
+Ie: W: `[1.5008, 0.6880]`, o: `[-0.4762, 2.4543]`, etc...
+
+Conceptually all of our tokens are "communicating" with each other. 
+
+
+```python
+
+        # W       # o      # u      # l      # d      # ' '   # y       # o      # u
+   W  ([[ 1.2227, -1.9223,  0.0923,  1.5502, -2.9663, -0.7094,  1.2556, -2.5659, -1.0425],
+   o    [ 0.2995, -1.8260,  0.3636,  1.1011, -2.1265,  0.1616,  1.2114, -1.0055, -1.2677],
+   u    [-0.4667,  1.0748, -0.1210, -0.7733,  1.4845,  0.1864, -0.7067,  1.0743,  0.6527],
+   l    [ 0.3674,  0.1439, -0.1538,  0.0817, -0.1459, -0.3917, -0.1040, -0.5702,  0.2257],
+   d    [-0.6709, -0.3452,  0.3016, -0.1053,  0.1812,  0.7357,  0.2449,  1.0184, -0.4739],
+  ' '   [-1.2592,  2.3151, -0.1795, -1.7750,  3.4013,  0.6476, -1.5167,  2.7358,  1.3242],
+   y    [-0.2264,  1.2599, -0.2445, -0.7683,  1.4831, -0.0923, -0.8354,  0.7266,  0.8683],
+   o    [-1.9479,  2.6855, -0.0523, -2.2689,  4.3361,  1.2234, -1.7488,  3.9829,  1.3792],
+   u    [ 0.6173, -1.9829,  0.3014,  1.3216, -2.5435, -0.1076,  1.3092, -1.5771, -1.2826]], dtype=torch.float64)
+```
+
+5. Normalize and use a mask
+
+Here we are using a decoder mask.
+
+```python
+A=
+        # W       # o      # u      # l      # d      # ' '   # y       # o      # u
+   W  ([[ 1.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000],
+   o    [ 0.8934,  0.1066,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000],
+   u    [ 0.1412,  0.6594,  0.1994,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000],
+   l    [ 0.3180,  0.2543,  0.1888,  0.2389,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000],
+   d    [ 0.1095,  0.1516,  0.2895,  0.1927,  0.2567,  0.0000,  0.0000,  0.0000,  0.0000],
+  ' '   [ 0.0066,  0.2337,  0.0193,  0.0039,  0.6925,  0.0441,  0.0000,  0.0000,  0.0000],
+   y    [ 0.0704,  0.3114,  0.0692,  0.0410,  0.3892,  0.0805,  0.0383,  0.0000,  0.0000],
+   o    [ 0.0010,  0.0981,  0.0063,  0.0007,  0.5110,  0.0227,  0.0012,  0.3590,  0.0000],
+   u    [ 0.1513,  0.0112,  0.1103,  0.3059,  0.0064,  0.0733,  0.3021,  0.0169,  0.0226]], dtype=torch.float64)
+```
+
+We effectively get a matrix $A$ where each value in [row,column] represents a how much each 
+character (query) in the sequence "Would you" should pay attention to every other character (key) in the sequence.
+
+6. Compute our new embeddings
+
+```python
+# Attention Matrix: 9x9, Value Matrix: 9x2
+# 9x9 @ 9x2 = 9x2
+tensor([[ 2.5039, -0.4066], # W
+        [ 0.3856,  0.6750], # o
+        [-0.8985, -0.0397], # u
+        [ 0.8735, -0.5345], # l
+        [-1.6091,  1.0233], # d
+        [-2.5223,  0.2270], # ' '
+        [-0.3118, -0.4414], # y
+        [-4.0523,  0.8632], # o
+        [ 1.0940,  0.3734]],# u
+       dtype=torch.float64)
+```
+
+```python
+new_embeddings = 
+
+  # [(W,W) @ W , (W,W) @ W ]
+W = [1 * 2.5039, 1 * -0.4066] 
+
+  # [(o,W) @ W         + (o,o) @ o          , (o,W) @ W          + (o,o) @ o]
+o = [(0.8934 * 2.5039) +  (0.1066 * -0.4066), (0.8934 * -0.4066) +  (0.1066 * 0.6750) ] 
+
+  # [ (u,W) @ W          +  (u,o) @ o           (u,o) @ u         , (u,W) @ W          +  (u,o) @ o           (u,o) @ u
+u = [ (0.1412 *  2.5039) + (0.6594 *  0.3856) + (0.1994 * -0.8985), (0.1412 *  -0.4066) + (0.6594 * 0.6750) + (0.1994 * -0.0397),  ]
+
+... 
+```
+
+Conceptually this operation takes each token from our original (albeit transformed) embedding, 
+and then weighs how much that token interacts with other tokens. This is easily expressed through a matrix multiplication.
+
+So for instance the token "o", is attending more to "W", than itself:
+
+`(0.8934 * 2.5039) +  (0.1066 * -0.4066) ,  (0.8934 * -0.4066) +  (0.1066 * 0.6750)`
+
 ## Sequential modeling
 
-- Each token is encoded positionally using a positional func
-- We also information into each token through our attention process
-
-### Attention example
-
-# TODO
+- Each token is encoded positionally using a positional encoding func
+- By applying attention, we do also attend and aggregate other tokens in the sequence and encode this information
+into new embeddings.
 
 ## Forward pass
 
