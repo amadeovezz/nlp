@@ -12,8 +12,9 @@ class RecurrentLayer(Layer):
                  , generator: torch.Generator = None
                  , init_scale_factor_weights: float = 1
                  , init_scale_factor_biases: float = 1
-                 , append_hidden_layer: bool = False
                  , append_pre_activation_layer: bool = False
+                 , append_activation_layer: bool = False
+                 , append_activation_gradients: bool = False
                  ):
 
         # Params
@@ -24,10 +25,10 @@ class RecurrentLayer(Layer):
         self.activation_func = activation_func
 
         # Debugging and logging
-        self.append_hidden_layer = append_hidden_layer
         self.append_pre_activation_layer = append_pre_activation_layer
-        self.hidden_layers = [] if append_hidden_layer else None
+        self.append_activation_layer = append_activation_layer
         self.pre_activation_layers = [] if append_pre_activation_layer else None
+        self.activation_layers = [] if append_activation_layer else None
 
         # Specific to RecurrentLayer
         self.previous_pre_activation = None
@@ -46,11 +47,11 @@ class RecurrentLayer(Layer):
         out = self.activation_func(aggregated_pre_activation) if self.activation_func is not None else aggregated_pre_activation
 
         # Logging
-        if self.append_hidden_layer:
-            self.hidden_layers.append(out)
-
         if self.append_pre_activation_layer:
             self.pre_activation_layers.append(pre_activation)
+
+        if self.append_activation_layer:
+            self.activation_layers.append(out)
 
         return out
 
@@ -67,3 +68,6 @@ class RecurrentLayer(Layer):
 
     def reset_previous_activations(self):
         self.previous_pre_activation = None
+
+    def params(self) -> List[torch.Tensor]:
+        return None

@@ -139,6 +139,7 @@ class SimpleTransformer(Model):
 
         return sampled_text
 
+
     @torch.no_grad
     def dataset_loss(self, all_inputs: torch.Tensor, all_targets: torch.Tensor) -> torch.Tensor:
         out = self.forward(all_inputs)
@@ -217,6 +218,9 @@ class Transformer(SimpleTransformer):
         self.layer_norm_1.zero_grad()
         self.layer_norm_2.zero_grad()
         self.mlp.zero_grad()
+
+    def params(self) -> List[torch.Tensor]:
+        return None
 
     def forward(self, inputs_idx: torch.Tensor) -> torch.Tensor:
         """

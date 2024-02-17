@@ -8,10 +8,11 @@ from base.mlp import MLP
 
 class EmbMLP(Model):
 
-    def __init__(self, hp: Dict, model: MLP, **kwargs):
+    def __init__(self, hp: Dict, model: MLP, generator: torch.Generator = None, **kwargs):
         self.hp = hp
         self.embedding = torch.randn(
             (kwargs["num_of_unique_chars"], hp["dim_of_embedding"])
+            , generator=generator
             , dtype=torch.float64)
         self.mlp = model
 
@@ -38,6 +39,16 @@ class EmbMLP(Model):
 
     def loss(self, logits: torch.Tensor, targets: torch.Tensor):
         return self.mlp.loss(logits, targets)
+
+    def params(self) -> List[Dict]:
+        layer_dict = {
+            "layer": self.__class__.__name__
+            , "embedding": self.embedding
+        }
+        return [layer_dict] + self.mlp.params()
+
+    def disable_logging(self) -> None:
+        self.mlp.disable_logging()
 
     @torch.no_grad
     def generate(self, max_num_of_tokens: int) -> List:

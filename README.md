@@ -3,21 +3,20 @@
 This repository contains different approaches to autoregressive character modeling using neural nets. 
 The purpose is to implement, compare and contrast some of notable ideas in the field.
 
-## Intention
+## Inspiration and Intention
 
-This intention of this repository is educational in nature, and as such readability and conceptual understanding of the code is prioritized over performance.
+This repo is essentially a re-implementation of many of the core ideas in https://github.com/karpathy/nn-zero-to-hero.
+There is a lot of code re-use from these lectures.
 
-### A note on pytorch
+Additionally, this repository is purely educational in nature, and as such readability is prioritized over 
+performance.
 
-`pytorch` is mainly just used for tensor operations and auto-grad features whereas there is intentionally no use of `nn.Module`.
+### A note on pytorch 
 
-## Inspiration
-
-This repo is inspired by https://github.com/karpathy/nn-zero-to-hero and some code is re-used from here. 
+There is intentionally no use of `nn.Module`.
 
 ## Current models 
 
-- mlps
 - learned embedding + mlps (Bengio et al.)
 - vanilla rnns
 - attention based models

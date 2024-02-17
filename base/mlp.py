@@ -3,6 +3,7 @@ import torch
 from torch.functional import F
 
 from base import abstract
+from base.norm import LayerNorm
 
 
 class LinearLayer(abstract.Layer):
@@ -10,12 +11,15 @@ class LinearLayer(abstract.Layer):
     def __init__(self
                  , num_of_inputs: int
                  , num_of_neurons: int
+                 , normalizer: LayerNorm = None
                  , activation_func: Callable = None
                  , generator: torch.Generator = None
                  , init_scale_factor_weights: float = 1
                  , init_scale_factor_biases: float = 1
-                 , append_hidden_layer: bool = False
                  , append_pre_activation_layer: bool = False
+                 , append_activation_layer: bool = False
+                 , append_activation_gradients: bool = False
+                 , retain_activations: bool = False
                  ):
         """
 
@@ -30,11 +34,15 @@ class LinearLayer(abstract.Layer):
         # Activation
         self.activation_func = activation_func
 
+        # Norm
+        self.normalizer = normalizer
+
         # Debugging and logging
-        self.append_hidden_layer = append_hidden_layer
         self.append_pre_activation_layer = append_pre_activation_layer
-        self.hidden_layers = [] if append_hidden_layer else None
+        self.append_activation_layer = append_activation_layer
+        self.retain_activations = retain_activations
         self.pre_activation_layers = [] if append_pre_activation_layer else None
+        self.activation_layers = [] if append_activation_layer else None
 
     def __call__(self, inputs: torch.Tensor) -> torch.Tensor:
         """
@@ -45,27 +53,47 @@ class LinearLayer(abstract.Layer):
         """
         pre_activation = inputs @ self.weights + self.biases
 
-        out = self.activation_func(pre_activation) if self.activation_func is not None else pre_activation
+        out = pre_activation
+        if self.activation_func:
+            if self.normalizer:
+                out = self.activation_func(self.normalizer(pre_activation))
+            else:
+                out = self.activation_func(pre_activation)
 
-        if self.append_hidden_layer:
-            self.hidden_layers.append(out)
+        # Logging and diagnostics
+        if self.retain_activations:
+            out.retain_grad()
 
         if self.append_pre_activation_layer:
             self.pre_activation_layers.append(pre_activation)
+
+        if self.append_activation_layer:
+            self.activation_layers.append(out)
 
         return out
 
     def tune(self, learning_rate: float) -> None:
         self.weights.data += learning_rate * (-1 * self.weights.grad)
         self.biases.data += learning_rate * (-1 * self.biases.grad)
+        self.normalizer.tune(learning_rate) if self.normalizer else None
 
     def zero_grad(self) -> None:
         self.weights.grad = None
         self.biases.grad = None
+        self.normalizer.zero_grad() if self.normalizer else None
 
     def require_grad(self) -> None:
         self.weights.requires_grad = True
         self.biases.requires_grad = True
+        self.normalizer.require_grad() if self.normalizer else None
+
+    def params(self) -> List[Dict]:
+        layer_dict = {
+            "layer": self.__class__.__name__
+            , "weights": self.weights
+            , "biases": self.biases
+        }
+        return [layer_dict] if self.normalizer is None else [layer_dict, self.normalizer.params()[0]]
 
 
 class MLP(abstract.Model):
@@ -98,8 +126,20 @@ class MLP(abstract.Model):
         for layer in self.layers:
             layer.require_grad()
 
+    def disable_logging(self) -> None:
+        for layer in self.layers:
+            layer.retain_activations = False
+            layer.append_activation_layer = False
+            layer.append_activation_gradients = False
+
     @torch.no_grad
     def dataset_loss(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         out = self.forward(inputs)
         return self.loss(out, targets)
 
+    def params(self) -> List[Dict]:
+        flattened = []
+        for layer in self.layers:
+            for param in layer.params():
+                flattened.append(param)
+        return flattened

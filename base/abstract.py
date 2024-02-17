@@ -21,6 +21,8 @@ class Layer(ABC):
     def require_grad(self):
         raise NotImplementedError
 
+    def params(self) -> List[Dict]:
+        raise NotImplementedError
 
 class Model(ABC):
 
@@ -40,4 +42,7 @@ class Model(ABC):
         raise NotImplementedError
 
     def require_grad(self):
+        raise NotImplementedError
+
+    def params(self) -> List[Dict]:
         raise NotImplementedError

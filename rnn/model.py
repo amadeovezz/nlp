@@ -69,7 +69,6 @@ class RNN(Model):
 
         return sampled_text
 
-
     def tune(self, learning_rate: float) -> None:
         self.embedding.data += learning_rate * (-1 * self.embedding.grad)
         for layer in self.layers:
@@ -83,3 +82,6 @@ class RNN(Model):
     def dataset_loss(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         out = self.forward(inputs)
         return self.loss(out, targets)
+
+    def params(self) -> List[torch.Tensor]:
+        return None
