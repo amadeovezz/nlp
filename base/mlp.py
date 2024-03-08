@@ -139,7 +139,8 @@ class MLP(abstract.Model):
 
     def params(self) -> List[Dict]:
         flattened = []
-        for layer in self.layers:
+        for i, layer in enumerate(self.layers, start=1):
             for param in layer.params():
+                param["layer_num"] = i
                 flattened.append(param)
         return flattened

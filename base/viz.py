@@ -22,8 +22,8 @@ def plot_activation_distributions(layers: List[abstract.Layer]) -> None:
             print("No activation layers found, make sure to enable: append_activation_layer=True")
             return
         t = layer.activation_layers[-1]
-        print('layer %d (%10s): mean %+.2f, std %.2f, saturated: %.2f%%' % (
-        i, layer.__class__.__name__, t.mean(), t.std(), (t.abs() > 0.97).float().mean() * 100))
+        print('layer %d (%10s): mean %+.2f, std %.2f, saturated: %.2f%%' %
+              (i, layer.__class__.__name__, t.mean(), t.std(), (t.abs() > 0.97).float().mean() * 100))
         hy, hx = torch.histogram(t, density=True)
         plt.plot(hx[:-1].detach(), hy.detach())
         legends.append(f'layer {i} ({layer.__class__.__name__}')
@@ -66,3 +66,18 @@ def plot_parameters_grads(params: List[Dict]) -> None:
             legends.append(f'param {i} {tuple(data.shape)}')
     plt.legend(legends)
     plt.title('weights gradient distribution');
+
+def plot_parameters_update_data_ratio(params: List[Dict], stat_list: List[Dict]) -> None:
+    plt.figure(figsize=(20, 4))
+    legends = []
+    layers = [param for param in params if param['layer'] in ['LinearLayer']]
+    for i, param in enumerate(layers):
+        ratios = []
+        for stat in stat_list:
+            for layer in stat:
+                if layer['layer'] == param['layer'] and layer['layer_num'] == param['layer_num']:
+                    ratios.append(layer['update:data ratio'].item())
+        plt.plot(ratios)
+        legends.append(f'Layer {param["layer_num"]}: {param["layer"]}')
+    # plt.plot([0, len(stat_list)], [-3, -3], 'k') # these ratios should be ~1e-3, indicate on plot
+    plt.legend(legends);

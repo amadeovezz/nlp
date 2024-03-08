@@ -8,7 +8,9 @@ def sgd(hp: Dict
         , model: abstract.Model
         , training_inputs: torch.Tensor
         , training_targets: torch.Tensor
-        , loss_list: List):
+        , loss_list: List
+        , stat_list: List
+        ):
     """
     :param hp: hyper-params
     :param model: an object that implements the methods in abstract.Model
@@ -44,6 +46,17 @@ def sgd(hp: Dict
         ## Tune ##
         learning_rate = hp['init_learning_rate'] if epoch < 100000 else hp['converging_learning_rate']
         model.tune(learning_rate)
+
+        ## More stats ##
+        stat_list.append(
+            [
+                {
+                    "epoch": epoch
+                    , "layer": p['layer']
+                    , "layer_num": p['layer_num']
+                    , "update:data ratio": ((hp['init_learning_rate'] * p['weights'].grad).std() / p['weights'].std())
+                } for p in model.params() if p['layer'] in ['LinearLayer']]
+        )
 
         if epoch % hp['epochs_log_interval'] == 0:
             print(f'epoch: {epoch} / {hp["epochs"]}, loss: {loss.item():.4f}')

@@ -43,9 +43,14 @@ class EmbMLP(Model):
     def params(self) -> List[Dict]:
         layer_dict = {
             "layer": self.__class__.__name__
+            , "layer_num": 1
             , "embedding": self.embedding
         }
-        return [layer_dict] + self.mlp.params()
+        params = self.mlp.params()
+        for param in params:
+            param["layer_num"] += 1
+
+        return [layer_dict] + params
 
     def disable_logging(self) -> None:
         self.mlp.disable_logging()

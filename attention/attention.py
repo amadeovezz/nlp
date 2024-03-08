@@ -105,6 +105,7 @@ class SelfAttentionHead:
 
 
 class CrossAttentionHead:
+    # TODO: not sure this is really cross attention
 
     def __init__(self
                  , num_of_possible_inputs: int
